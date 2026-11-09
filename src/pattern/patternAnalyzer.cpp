@@ -732,6 +732,11 @@ void PatternAnalyzer::generateInsights()
 	}
 
 	// PATTERN 4: Most Switched-Away From App
+	// The filtered map can legitimately be empty (for example when the only
+	// recorded switch is HPR -> X). Dereferencing max_element() on an empty
+	// range would dereference end() and crash, so only read the result when
+	// there is something to report.
+	mostSwitchedFrom_O.clear();
 	if (!switchHistory.empty())
 	{
 		std::map<std::string, size_t> switchCounts;
@@ -743,16 +748,22 @@ void PatternAnalyzer::generateInsights()
 				continue;
 			switchCounts[fromApp] += vec.size();
 		}
-		auto maxIt = std::max_element(switchCounts.begin(), switchCounts.end(),
-									  [](const auto &a, const auto &b) { return a.second < b.second; });
+		if (!switchCounts.empty())
+		{
+			auto maxIt = std::max_element(switchCounts.begin(), switchCounts.end(),
+										  [](const auto &a, const auto &b) { return a.second < b.second; });
 
-		std::string app = AppState::aliasManager.getAlias(maxIt->first);
-		size_t count = maxIt->second;
+			std::string app = AppState::aliasManager.getAlias(maxIt->first);
+			size_t count = maxIt->second;
 
-		mostSwitchedFrom_O = app + " — " + std::to_string(count) + " switches";
+			mostSwitchedFrom_O = app + " — " + std::to_string(count) + " switches";
+		}
 	}
 
 	// PATTERN 5: Most Switched-To From App
+	// Same guard as above: a single switch to HPR (X -> HPR) leaves this map
+	// empty, which used to crash on startup for a one-row switch_history.
+	mostSwitchedTo_O.clear();
 	if (!switchHistory.empty())
 	{
 		std::map<std::string, size_t> switchCounts;
@@ -766,13 +777,16 @@ void PatternAnalyzer::generateInsights()
 			switchCounts[toApp] += vec.size();
 		}
 
-		auto maxIt = std::max_element(switchCounts.begin(), switchCounts.end(),
-									  [](const auto &a, const auto &b) { return a.second < b.second; });
+		if (!switchCounts.empty())
+		{
+			auto maxIt = std::max_element(switchCounts.begin(), switchCounts.end(),
+										  [](const auto &a, const auto &b) { return a.second < b.second; });
 
-		std::string app = AppState::aliasManager.getAlias(maxIt->first);
-		size_t count = maxIt->second;
+			std::string app = AppState::aliasManager.getAlias(maxIt->first);
+			size_t count = maxIt->second;
 
-		mostSwitchedTo_O = app + " — " + std::to_string(count) + " switches";
+			mostSwitchedTo_O = app + " — " + std::to_string(count) + " switches";
+		}
 	}
 
 	// Pattern 6: Longest Focus Session (Robust Chronological Matching)
