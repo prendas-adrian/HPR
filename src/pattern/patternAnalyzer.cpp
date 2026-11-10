@@ -3,6 +3,7 @@
 #include "aliasManager.hpp"
 #include "appState.hpp"
 #include "logger.hpp"
+#include "switchHistoryStats.hpp"
 #include "timeUtils.hpp"
 
 #include <algorithm>
@@ -732,47 +733,19 @@ void PatternAnalyzer::generateInsights()
 	}
 
 	// PATTERN 4: Most Switched-Away From App
-	if (!switchHistory.empty())
+	mostSwitchedFrom_O.clear();
+	if (auto best = SwitchHistoryStats::mostSwitchedFrom(switchHistory))
 	{
-		std::map<std::string, size_t> switchCounts;
-		const std::string selfApp = "HPR";
-		for (const auto &[apps, vec] : switchHistory)
-		{
-			const std::string &fromApp = apps.first;
-			if (fromApp == selfApp)
-				continue;
-			switchCounts[fromApp] += vec.size();
-		}
-		auto maxIt = std::max_element(switchCounts.begin(), switchCounts.end(),
-									  [](const auto &a, const auto &b) { return a.second < b.second; });
-
-		std::string app = AppState::aliasManager.getAlias(maxIt->first);
-		size_t count = maxIt->second;
-
-		mostSwitchedFrom_O = app + " — " + std::to_string(count) + " switches";
+		std::string app = AppState::aliasManager.getAlias(best->first);
+		mostSwitchedFrom_O = app + " — " + std::to_string(best->second) + " switches";
 	}
 
 	// PATTERN 5: Most Switched-To From App
-	if (!switchHistory.empty())
+	mostSwitchedTo_O.clear();
+	if (auto best = SwitchHistoryStats::mostSwitchedTo(switchHistory))
 	{
-		std::map<std::string, size_t> switchCounts;
-		const std::string selfApp = "HPR";
-
-		for (const auto &[apps, vec] : switchHistory)
-		{
-			const std::string &toApp = apps.second;
-			if (toApp == selfApp)
-				continue; // skip switches back to HPR
-			switchCounts[toApp] += vec.size();
-		}
-
-		auto maxIt = std::max_element(switchCounts.begin(), switchCounts.end(),
-									  [](const auto &a, const auto &b) { return a.second < b.second; });
-
-		std::string app = AppState::aliasManager.getAlias(maxIt->first);
-		size_t count = maxIt->second;
-
-		mostSwitchedTo_O = app + " — " + std::to_string(count) + " switches";
+		std::string app = AppState::aliasManager.getAlias(best->first);
+		mostSwitchedTo_O = app + " — " + std::to_string(best->second) + " switches";
 	}
 
 	// Pattern 6: Longest Focus Session (Robust Chronological Matching)
