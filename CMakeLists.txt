@@ -234,3 +234,12 @@ if(UNIX)
     target_link_options(HPRUpdater PRIVATE "-static-libgcc" "-static-libstdc++")
 endif()
 add_dependencies(HPR HPRUpdater)
+
+# Optional regression tests for pure logic (no Slint/AppState dependencies).
+option(HPR_BUILD_TESTS "Build HPR regression tests" OFF)
+if(HPR_BUILD_TESTS)
+    enable_testing()
+    add_executable(switch_history_stats_test tests/pattern/switch_history_stats_test.cpp)
+    target_include_directories(switch_history_stats_test PRIVATE include/)
+    add_test(NAME switch_history_stats_test COMMAND switch_history_stats_test)
+endif()
